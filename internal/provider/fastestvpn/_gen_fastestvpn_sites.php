@@ -28,10 +28,11 @@ $serversjson = json_decode($serversraw, true);
 if (count($serversjson) < 1) {
     die("No providers defined in servers.json?  Exit!\n");
 }
-// Check for fastestvpn existance
+// Check for fastestvpn existence
 if (!isset($serversjson["fastestvpn"])) {
 	$serversjson["fastestvpn"] = array();
 	$serversjson["fastestvpn"]["version"] = 2;
+	$serversjson["fastestvpn"]["timestamp"] = time();
 }
 if (!isset($serversjson["fastestvpn"]["servers"])) {
 	$serversjson["fastestvpn"]["servers"] = array();
@@ -89,6 +90,7 @@ usort($Servers, function ($item1, $item2) {
 
 // Update the current tree
 $serversjson["fastestvpn"]["timestamp"] = time();
+print_r($serversjson["fastestvpn"]);
 // Start new Serverlist
 $serversjson["fastestvpn"]["servers"] = array();
 foreach ($Servers as $HostName => $Server) {
@@ -116,7 +118,6 @@ foreach ($Servers as $HostName => $Server) {
         )
     );
 }
-ksort($serversjson);
 print("    New Servers.json defined providers:" . count($serversjson) . "  fastestvpn servers:" . count($serversjson["fastestvpn"]["servers"]) . "\n");
 file_put_contents($serversjsonfile, json_encode($serversjson, JSON_PRETTY_PRINT));
 print("File \"$serversjsonfile updated\".\n");
