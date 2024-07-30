@@ -6,6 +6,7 @@ This fastestvpn client stores the full serverlist in %localappdata%\FastestVPN\l
 This file is read by the below script and it will update the fastestvpn JSON part in storage/servers.json.
 */
 $serversjsonfile = "../../storage/servers.json";
+$fvpnserversjsonfile = "fastestvpn_servers.json";
 $fastestxmlfile = getenv("localappdata") . "/FastestVPN/localdata.xml";
 
 // Read xml file
@@ -30,12 +31,13 @@ if (count($serversjson) < 1) {
 }
 // Check for fastestvpn existence
 if (!isset($serversjson["fastestvpn"])) {
-	$serversjson["fastestvpn"] = array();
-	$serversjson["fastestvpn"]["version"] = 2;
-	$serversjson["fastestvpn"]["timestamp"] = time();
+    $serversjson["fastestvpn"] = array();
+    $serversjson["fastestvpn"]["version"] = 2;
+    $serversjson["fastestvpn"]["timestamp"] = time();
 }
+// remove current fastestvpn servers in table
 if (!isset($serversjson["fastestvpn"]["servers"])) {
-	$serversjson["fastestvpn"]["servers"] = array();
+    $serversjson["fastestvpn"]["servers"] = array();
 }
 print("Current Servers.json defined providers:" . count($serversjson) . "  fastestvpn servers:" . count($serversjson["fastestvpn"]["servers"]) . "\n");
 
@@ -57,14 +59,14 @@ foreach ($xml->ServerGroups->ServerGroup as $key1 => $xmlvalue) {
                     $Servers["$value->Dns"]["wgpubkey"] = "";
                 }
                 if ("$xmlvalue->Name" == "Countries") {
-					$Servers["$value->Dns"]["city"] = "$value->City";
-				} else {
-					$Servers["$value->Dns"]["city"] = "$xmlvalue->Name";
-				}
+                    $Servers["$value->Dns"]["city"] = "$value->City";
+                } else {
+                    $Servers["$value->Dns"]["city"] = "$xmlvalue->Name";
+                }
                 $Servers["$value->Dns"]["continent"] = "$value->Continent";
                 $Servers["$value->Dns"]["country"] = "$value->Country";
                 $Servers["$value->Dns"]["hostname"] = "$value->Dns";
-				$Servers["$value->Dns"]["ips"] = array("$value->Ip");
+                $Servers["$value->Dns"]["ips"] = array("$value->Ip");
                 if ("$value->Protocol" == "TCP") {
                     $Servers["$value->Dns"]["tcp"] = true ;
                 }
@@ -79,17 +81,8 @@ foreach ($xml->ServerGroups->ServerGroup as $key1 => $xmlvalue) {
     }
 }
 
-// Sort the servers by hostname
-//ksort($Servers);
-
-usort($Servers, function ($item1, $item2) {
-    return $item1['country'].$item1['city'] <=> $item2['country'].$item2['city'];
-});
-
-
 // Update the current tree
 $serversjson["fastestvpn"]["timestamp"] = time();
-//print_r($serversjson["fastestvpn"]);
 // Start new Serverlist
 $serversjson["fastestvpn"]["servers"] = array();
 foreach ($Servers as $HostName => $Server) {
@@ -118,14 +111,30 @@ foreach ($Servers as $HostName => $Server) {
     );
 }
 print("    New Servers.json defined providers:" . count($serversjson) . "  fastestvpn servers:" . count($serversjson["fastestvpn"]["servers"]) . "\n");
-// change default indent from 4 -> 2
-$jsonout = preg_replace_callback('/^(?: {4})+/m',
-    function($m) {
+
+// ----------------------------------------------------------------------
+// Update master server.json file
+//   change default indent from 4 -> 2
+$jsonout = preg_replace_callback(
+    '/^(?: {4})+/m',
+    function ($m) {
         return str_repeat(' ', 2 * (strlen($m[0]) / 4));
     },
-    json_encode($serversjson, JSON_UNESCAPED_SLASHES+JSON_UNESCAPED_UNICODE+JSON_PRETTY_PRINT)
+    json_encode($serversjson, JSON_UNESCAPED_SLASHES + JSON_UNESCAPED_UNICODE + JSON_PRETTY_PRINT)
 );
 
 file_put_contents($serversjsonfile, $jsonout);
-print("File \"$serversjsonfile updated\".\n");
-?>
+print("File \"$serversjsonfile updated with latest fastestvpn serverlist\".\n");
+
+// ----------------------------------------------------------------------
+// save just the fastestvpn serverlist in separate file
+$jsonout = preg_replace_callback(
+    '/^(?: {4})+/m',
+    function ($m) {
+        return str_repeat(' ', 2 * (strlen($m[0]) / 4));
+    },
+    json_encode($serversjson["fastestvpn"], JSON_UNESCAPED_SLASHES + JSON_UNESCAPED_UNICODE + JSON_PRETTY_PRINT)
+);
+
+file_put_contents($fvpnserversjsonfile, $jsonout);
+print("File \"$fvpnserversjsonfile updated witj only the fastestvpn serverlist\".\n");
